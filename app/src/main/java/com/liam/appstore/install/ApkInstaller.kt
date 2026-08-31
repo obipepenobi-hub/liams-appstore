@@ -112,7 +112,14 @@ class ApkInstaller(private val context: Context, private val http: OkHttpClient)
         return Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // Kein FLAG_ACTIVITY_NEW_TASK: wir starten aus einer Activity heraus, daher
+            // bleibt der System-Installer im selben Task und "Fertig" kehrt zu uns zurück
+            // (onResume aktualisiert dann den Installiert/Öffnen-Zustand). Mit dem Flag
+            // landete man nach dem Installieren teils auf dem Homescreen statt in der App.
         }
+    }
+
+    fun buildUninstallIntent(packageName: String): Intent {
+        return Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName"))
     }
 }

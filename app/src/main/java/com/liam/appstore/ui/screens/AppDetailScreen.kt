@@ -31,6 +31,7 @@ import com.liam.appstore.data.AppEntry
 import com.liam.appstore.data.AppState
 import com.liam.appstore.ui.components.Badge
 import com.liam.appstore.ui.components.FilledPillButton
+import com.liam.appstore.ui.components.OutlinePillButton
 import com.liam.appstore.ui.components.formatSize
 import com.liam.appstore.ui.theme.WerkstattColors
 
@@ -39,7 +40,8 @@ fun AppDetailScreen(
     entry: AppEntry,
     state: AppState,
     onBack: () -> Unit,
-    onAction: () -> Unit
+    onAction: () -> Unit,
+    onUninstall: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize().background(WerkstattColors.Cream)) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -77,7 +79,14 @@ fun AppDetailScreen(
                         AppState.UPDATE_AVAILABLE -> "Update · ${formatSize(entry.sizeBytes)}"
                         AppState.UP_TO_DATE -> "Öffnen"
                     }
-                    FilledPillButton(text = actionLabel, onClick = onAction, modifier = Modifier.fillMaxWidth())
+                    if (state == AppState.NOT_INSTALLED) {
+                        FilledPillButton(text = actionLabel, onClick = onAction, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            FilledPillButton(text = actionLabel, onClick = onAction, modifier = Modifier.weight(1f))
+                            OutlinePillButton(text = "Entfernen", onClick = onUninstall, modifier = Modifier.weight(1f))
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Signatur geprüft · ${entry.version} · APK aus deiner Werkstatt",

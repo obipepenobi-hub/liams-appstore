@@ -117,6 +117,10 @@ private fun AppRoot(
         }
     }
 
+    fun performUninstall(entry: AppEntry) {
+        context.startActivity(viewModel.uninstallIntent(entry.packageName))
+    }
+
     Scaffold(
         containerColor = WerkstattColors.Cream,
         bottomBar = {
@@ -160,7 +164,8 @@ private fun AppRoot(
                         onUpdateAll = {
                             manifest?.apps?.filter { appStates[it.id] == AppState.UPDATE_AVAILABLE }
                                 ?.forEach { performAction(it) }
-                        }
+                        },
+                        onUninstall = { performUninstall(it) }
                     )
                     StoreTab.SETTINGS -> SettingsScreen(
                         state = SettingsState(
@@ -196,7 +201,8 @@ private fun AppRoot(
                             entry = entry,
                             state = appStates[entry.id] ?: AppState.NOT_INSTALLED,
                             onBack = { route = Route.Tab(StoreTab.STORE) },
-                            onAction = { performAction(entry) }
+                            onAction = { performAction(entry) },
+                            onUninstall = { performUninstall(entry) }
                         )
                     }
                 }
@@ -220,10 +226,9 @@ private fun AppRoot(
         onConfirm = { entry -> viewModel.confirmInstall(entry) },
         onOpenUnknownSourcesSettings = { onOpenUnknownSourcesSettings(app.apkInstaller.unknownSourcesSettingsIntent()) },
         onLaunchInstall = { entry ->
-            val intent = viewModel.launchInstall(entry).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-            context.startActivity(intent)
-            viewModel.onInstallHandedOff()
-            viewModel.showToast("${entry.name} installiert")
+            context.startActivity(viewModel.launchInstall(entry))
+            viewModel.dismissInstallSheet()
+            viewModel.showToast("Installation von ${entry.name} gestartet")
         },
         onError = { message ->
             viewModel.showToast(message)

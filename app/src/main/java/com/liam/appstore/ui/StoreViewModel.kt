@@ -128,13 +128,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun unknownSourcesIntent(): android.content.Intent = app.apkInstaller.unknownSourcesSettingsIntent()
 
+    fun uninstallIntent(packageName: String): android.content.Intent = app.apkInstaller.buildUninstallIntent(packageName)
+
     fun dismissInstallSheet() {
         _installStep.value = InstallStep.Idle
-    }
-
-    fun onInstallHandedOff() {
-        _installStep.value = InstallStep.Idle
-        recomputeInstalledStates()
     }
 
     fun showToast(message: String) {

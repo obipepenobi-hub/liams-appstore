@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,7 +35,8 @@ fun ShelfScreen(
     appStates: Map<String, AppState>,
     onOpenApp: (AppEntry) -> Unit,
     onAction: (AppEntry) -> Unit,
-    onUpdateAll: () -> Unit
+    onUpdateAll: () -> Unit,
+    onUninstall: (AppEntry) -> Unit
 ) {
     val apps = manifest?.apps.orEmpty()
     val installed = apps.filter { (appStates[it.id] ?: AppState.NOT_INSTALLED) != AppState.NOT_INSTALLED }
@@ -99,6 +101,13 @@ fun ShelfScreen(
                 }
                 val label = if (state == AppState.UPDATE_AVAILABLE) "Update" else "Öffnen"
                 SmallStatusPill(text = label, filled = false, onClick = { onAction(entry) })
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Entfernen",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = WerkstattColors.TextMuted,
+                    modifier = Modifier.clickable { onUninstall(entry) }
+                )
             }
         }
 
