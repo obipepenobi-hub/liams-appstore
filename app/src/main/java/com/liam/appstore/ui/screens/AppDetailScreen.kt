@@ -26,12 +26,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.liam.appstore.data.AppEntry
 import com.liam.appstore.data.AppState
 import com.liam.appstore.ui.components.Badge
 import com.liam.appstore.ui.components.FilledPillButton
 import com.liam.appstore.ui.components.OutlinePillButton
+import com.liam.appstore.ui.components.TeaserVideoPreview
 import com.liam.appstore.ui.components.formatSize
 import com.liam.appstore.ui.theme.WerkstattColors
 
@@ -50,9 +53,24 @@ fun AppDetailScreen(
                     IconButton(onClick = onBack, modifier = Modifier.padding(bottom = 4.dp)) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück", tint = WerkstattColors.TextDark)
                     }
-                    Badge(text = "TEASER · 0:24 · VON ${entry.author.uppercase()}")
-                    Spacer(Modifier.height(8.dp))
+                    if (entry.teaserVideoUrl.isNotBlank()) {
+                        Badge(text = "TEASER · VON ${entry.author.uppercase()}")
+                        Spacer(Modifier.height(8.dp))
+                    }
                     Text(entry.name, style = MaterialTheme.typography.headlineLarge, color = WerkstattColors.TextDark)
+                }
+            }
+
+            if (entry.teaserVideoUrl.isNotBlank()) {
+                item {
+                    TeaserVideoPreview(
+                        url = entry.teaserVideoUrl,
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp)
+                            .fillMaxWidth()
+                            .aspectRatio(9f / 16f)
+                    )
+                    Spacer(Modifier.height(20.dp))
                 }
             }
 
@@ -177,20 +195,33 @@ fun AppDetailScreen(
 
 @Composable
 private fun ScreenshotThumb(label: String) {
+    val isImageUrl = label.startsWith("http://") || label.startsWith("https://")
     Column(
         modifier = Modifier
             .width(120.dp)
             .background(WerkstattColors.CardNeutral, RoundedCornerShape(20.dp))
             .padding(10.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(9f / 16f)
-                .background(WerkstattColors.PlaceholderLight, RoundedCornerShape(14.dp))
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = WerkstattColors.TextMuted)
+        if (isImageUrl) {
+            AsyncImage(
+                model = label,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(9f / 16f)
+                    .background(WerkstattColors.PlaceholderLight, RoundedCornerShape(14.dp))
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(9f / 16f)
+                    .background(WerkstattColors.PlaceholderLight, RoundedCornerShape(14.dp))
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(label, style = MaterialTheme.typography.labelSmall, color = WerkstattColors.TextMuted)
+        }
     }
 }
 
