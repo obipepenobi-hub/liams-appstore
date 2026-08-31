@@ -1,0 +1,66 @@
+{
+  "storeName": "Liams Appstore",
+  "friends": [],
+  "categories": [
+    { "id": "alltag", "name": "Alltag", "subtitle": "Geld, Gewohnheiten, Kleinkram" },
+    { "id": "musik", "name": "Musik", "subtitle": "DJ-Tools, Fernbedienungen" }
+  ],
+  "apps": [
+    {
+      "id": "impulskauf-stopper",
+      "packageName": "com.liam.kaptalismusaufhalter",
+      "name": "Impulskauf-Stopper",
+      "author": "dir",
+      "category": "alltag",
+      "version": "1.0.3",
+      "versionCode": 10003,
+      "sizeBytes": 1189142,
+      "teaser": "Ein Wunsch muss erst reifen, bevor du ihn kaufst.",
+      "description": "Ein Wunsch muss erst \"einreifen\" (preisabhängige Wartezeit), bevor du entscheidest, ob du ihn wirklich kaufst. Sagst du \"doch nicht gekauft\", wandert der Betrag ins virtuelle Sparschwein. Rein lokal (Room/SQLite), kein Backend, keine Accounts.",
+      "tags": ["Kein Konto", "Offline", "Kein Backend"],
+      "permissions": [
+        { "label": "Benachrichtigung, wenn ein Wunsch reif ist", "manifestName": "POST_NOTIFICATIONS" },
+        { "label": "Läuft im Hintergrund weiter, auch nach Neustart", "manifestName": "RECEIVE_BOOT_COMPLETED" },
+        { "label": "Internet nur für den eigenen Update-Check", "manifestName": "INTERNET" }
+      ],
+      "changelog": [
+        { "version": "1.0.3", "date": "31. August 2026", "notes": "Design 1:1 an die Vorlage angepasst: Farben, Schrift, Sparschwein-Illustration, Layout." },
+        { "version": "1.0.2", "date": "31. August 2026", "notes": "Branded Update-Popup und GitHub-Pages-Downloadseite ergänzt." },
+        { "version": "1.0.1", "date": "31. August 2026", "notes": "Fehler behoben: Update-Installation startete nie nach dem Download." }
+      ],
+      "reviews": [],
+      "iconUrl": "",
+      "screenshots": [],
+      "apkUrl": "https://github.com/obipepenobi-hub/impulskauf-stopper/releases/download/v1.0.3/impulskauf-stopper-1.0.3.apk",
+      "apkSha256": "8d0247220b391f51cf12c625949513a2aae8d71a602392ab855660d5a5304c78",
+      "minSdk": 26,
+      "installs": 0
+    },
+    {
+      "id": "cadence",
+      "packageName": "com.liamkkm.cadence",
+      "name": "Cadence",
+      "author": "dir",
+      "category": "musik",
+      "version": "1.0.36",
+      "versionCode": 10036,
+      "sizeBytes": 63023972,
+      "teaser": "Fernbedienung fürs Handy für den KI-DJ, der auf deinem PC läuft.",
+      "description": "Cadence steuert den lokalen KI-DJ auf deinem PC vom Handy aus: automatisch im WLAN finden, QR-Code am PC scannen oder die IP-Adresse manuell eingeben. Danach läuft dieselbe Bedienung wie am PC — Play/Pause/Skip, Playlists, Stimmungsbefehle wie \"spiel was Entspanntes\".",
+      "tags": ["Kein Konto", "Lokales WLAN", "Companion-App"],
+      "permissions": [
+        { "label": "WLAN-Suche nach dem Cadence-PC", "manifestName": "ACCESS_WIFI_STATE" },
+        { "label": "Kamera zum Scannen des Verbindungs-QR-Codes", "manifestName": "CAMERA" },
+        { "label": "Internet für die Verbindung zum PC im selben Netz", "manifestName": "INTERNET" }
+      ],
+      "changelog": [],
+      "reviews": [],
+      "iconUrl": "",
+      "screenshots": [],
+      "apkUrl": "https://github.com/obipepenobi-hub/liams-appstore/releases/download/cadence-v1.0.36/cadence-v1.0.36.apk",
+      "apkSha256": "32c0101961d27dab6c9ffe8c9fbc37a6d8828a7432eea95ffc80b029ac41bdff",
+      "minSdk": 24,
+      "installs": 0
+    }
+  ]
+}

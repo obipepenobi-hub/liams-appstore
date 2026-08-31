@@ -1,0 +1,49 @@
+name: Store-Update veröffentlichen
+
+# Das ist die "Update-Struktur über GitHub" für Liams Appstore selbst:
+# Ein Tag wie v2, v3, v4 ... hier pushen -> die App wird gebaut und als
+# GitHub Release mit angehängter APK veröffentlicht. Liams Appstore prüft
+# regelmäßig "releases/latest" dieses Repos und bietet sich selbst als
+# Update an (siehe SelfUpdateManager.kt).
+#
+# WICHTIG: Die Zahl im Tag (z.B. "v7") muss mit dem versionCode in
+# app/build.gradle.kts übereinstimmen, sonst erkennt die App das Update nicht.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle-Wrapper ausführbar machen
+        run: chmod +x ./gradlew
+
+      - name: Debug-APK bauen
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: APK umbenennen
+        run: cp app/build/outputs/apk/debug/app-debug.apk liams-appstore-${{ github.ref_name }}.apk
+
+      - name: Release veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          files: liams-appstore-${{ github.ref_name }}.apk
+          name: "Liams Appstore ${{ github.ref_name }}"
+          body: |
+            Automatisch gebaut aus Tag `${{ github.ref_name }}`.
+            Installiert wird das über Liams Appstore selbst (Mehr -> Jetzt nach Store-Update suchen)
+            oder manuell durch Herunterladen der APK oben.
