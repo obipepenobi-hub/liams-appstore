@@ -177,7 +177,7 @@ private fun AppRoot(
                         onToggleAutoLoad = { v -> scope.launch { app.config.setAutoLoadUpdates(v) } },
                         onToggleTestBuilds = { v -> scope.launch { app.config.setShowTestBuilds(v); viewModel.refresh() } },
                         onToggleSelfUpdate = { v -> scope.launch { app.config.setSelfUpdateEnabled(v) } },
-                        onCheckSelfUpdate = { viewModel.checkSelfUpdate() },
+                        onCheckSelfUpdate = { viewModel.checkSelfUpdate(announceResult = true) },
                         onAddFriend = { name -> scope.launch { app.config.addLocalFriend(name) } },
                         onRemoveFriend = { name -> scope.launch { app.config.removeLocalFriend(name) } },
                         onShareInvite = {

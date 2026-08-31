@@ -13,7 +13,8 @@ data class LatestRelease(
     val tagName: String,
     val versionCode: Long,
     val apkDownloadUrl: String,
-    val htmlUrl: String
+    val htmlUrl: String,
+    val sizeBytes: Long
 )
 
 class GithubClient {
@@ -42,8 +43,9 @@ class GithubClient {
         val apkAsset = assets.map { it as kotlinx.serialization.json.JsonObject }
             .firstOrNull { (it["name"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.endsWith(".apk") == true }
         val downloadUrl = apkAsset?.get("browser_download_url")?.let { (it as kotlinx.serialization.json.JsonPrimitive).content } ?: ""
+        val size = apkAsset?.get("size")?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull() } ?: 0L
         val htmlUrl = obj["html_url"]?.let { (it as kotlinx.serialization.json.JsonPrimitive).content } ?: ""
-        LatestRelease(tagName = tag, versionCode = versionCode, apkDownloadUrl = downloadUrl, htmlUrl = htmlUrl)
+        LatestRelease(tagName = tag, versionCode = versionCode, apkDownloadUrl = downloadUrl, htmlUrl = htmlUrl, sizeBytes = size)
     }
 
     private fun getText(url: String, token: String, isApi: Boolean = false): String {

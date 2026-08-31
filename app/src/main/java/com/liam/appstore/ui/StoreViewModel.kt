@@ -75,11 +75,29 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         _appStates.value = manifest.apps.associate { it.id to app.repository.stateFor(it) }
     }
 
-    fun checkSelfUpdate() {
+    fun checkSelfUpdate(announceResult: Boolean = false) {
         viewModelScope.launch {
-            _selfUpdate.value = app.selfUpdateManager.check()
+            val result = app.selfUpdateManager.check()
+            _selfUpdate.value = result
+            when (result) {
+                is SelfUpdateCheck.UpdateAvailable -> beginInstall(selfUpdateEntry(result.release))
+                SelfUpdateCheck.UpToDate -> if (announceResult) showToast("Liams Appstore ist aktuell")
+                is SelfUpdateCheck.Failed -> if (announceResult) showToast("Update-Check fehlgeschlagen: ${result.message}")
+            }
         }
     }
+
+    private fun selfUpdateEntry(release: com.liam.appstore.data.LatestRelease): AppEntry = AppEntry(
+        id = SELF_UPDATE_ID,
+        packageName = app.packageName,
+        name = "Liams Appstore",
+        author = "dir",
+        category = "",
+        version = release.tagName,
+        versionCode = release.versionCode,
+        sizeBytes = release.sizeBytes,
+        apkUrl = release.apkDownloadUrl
+    )
 
     fun beginInstall(entry: AppEntry) {
         if (!app.apkInstaller.canInstallUnknownApps()) {
@@ -125,5 +143,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearToast() {
         _toast.value = null
+    }
+
+    companion object {
+        const val SELF_UPDATE_ID = "__self_update__"
     }
 }
