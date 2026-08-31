@@ -255,7 +255,7 @@ private fun AppRoot(
                     InstalledToast(message)
                 }
                 LaunchedEffect(message) {
-                    delay(2200)
+                    delay(4000)
                     viewModel.clearToast()
                 }
             }

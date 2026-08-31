@@ -19,9 +19,15 @@ data class LatestRelease(
 
 class GithubClient {
 
+    // callTimeout ist die entscheidende Absicherung: OkHttp bricht damit einen
+    // haengenden Request nach spaetestens 5 Minuten hart ab. 5 Minuten reichen
+    // auch der groessten APK im Katalog (Cadence, ~63 MB) auf einer langsamen
+    // Verbindung noch bequem - ohne diese harte Grenze konnte ein Download
+    // lautlos ewig haengen bleiben, ohne dass die App das je als Fehler bemerkt.
     private val http = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .callTimeout(5, TimeUnit.MINUTES)
         .build()
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
