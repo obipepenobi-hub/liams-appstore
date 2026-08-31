@@ -7,9 +7,11 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import com.liam.appstore.data.DownloadProgress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -70,11 +72,11 @@ class ApkInstaller(private val context: Context, private val http: OkHttpClient)
 
             trySend(DownloadProgress(appId, target.length(), target.length(), done = true))
         } catch (e: Exception) {
-            trySend(DownloadProgress(appId, 0, 0, done = true, error = e.message ?: "Download fehlgeschlagen"))
+            trySend(DownloadProgress(appId, 0, 0, done = true, error = e.message ?: e.javaClass.simpleName))
         }
         close()
         awaitClose { }
-    }
+    }.flowOn(Dispatchers.IO)
 
     fun apkFileFor(appId: String): File = File(downloadDir, "$appId.apk")
 

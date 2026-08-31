@@ -1,6 +1,7 @@
 package com.liam.appstore.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -54,12 +55,16 @@ fun SettingsScreen(
     onToggleAutoLoad: (Boolean) -> Unit,
     onToggleTestBuilds: (Boolean) -> Unit,
     onToggleSelfUpdate: (Boolean) -> Unit,
-    onCheckSelfUpdate: () -> Unit
+    onCheckSelfUpdate: () -> Unit,
+    onAddFriend: (String) -> Unit,
+    onRemoveFriend: (String) -> Unit,
+    onShareInvite: () -> Unit
 ) {
     var owner by remember(state.owner) { mutableStateOf(state.owner) }
     var repo by remember(state.repo) { mutableStateOf(state.repo) }
     var branch by remember(state.branch) { mutableStateOf(state.branch) }
     var token by remember(state.token) { mutableStateOf(state.token) }
+    var newFriend by remember { mutableStateOf("") }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(WerkstattColors.Cream),
@@ -132,16 +137,22 @@ fun SettingsScreen(
             Spacer(Modifier.height(20.dp))
         }
 
-        if (state.friends.isNotEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(WerkstattColors.SageBg, RoundedCornerShape(24.dp))
-                        .padding(18.dp)
-                ) {
-                    Text("Freundeskreis", style = MaterialTheme.typography.headlineSmall, color = WerkstattColors.TextDark)
-                    Spacer(Modifier.height(12.dp))
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(WerkstattColors.SageBg, RoundedCornerShape(24.dp))
+                    .padding(18.dp)
+            ) {
+                Text("Freundeskreis", style = MaterialTheme.typography.headlineSmall, color = WerkstattColors.TextDark)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Namen hier sind nur eine lokale Liste auf diesem Handy — sie geben niemandem Zugriff, sie helfen dir nur, den Überblick zu behalten, wem du den Store schon gezeigt hast.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = WerkstattColors.TextMuted
+                )
+                Spacer(Modifier.height(12.dp))
+                if (state.friends.isNotEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -151,6 +162,7 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .background(WerkstattColors.CardCream, CircleShape)
+                                    .clickable { onRemoveFriend(friend) }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
                                 Text(friend.take(2).uppercase(), style = MaterialTheme.typography.labelSmall, color = WerkstattColors.Sage)
@@ -159,9 +171,32 @@ fun SettingsScreen(
                             }
                         }
                     }
+                    Spacer(Modifier.height(12.dp))
                 }
-                Spacer(Modifier.height(20.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = newFriend,
+                        onValueChange = { newFriend = it },
+                        placeholder = { Text("Name") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = fieldColors(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilledPillButton(
+                        text = "Hinzufügen",
+                        onClick = {
+                            if (newFriend.isNotBlank()) {
+                                onAddFriend(newFriend)
+                                newFriend = ""
+                            }
+                        }
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                FilledPillButton(text = "Einladungslink teilen", onClick = onShareInvite, modifier = Modifier.fillMaxWidth())
             }
+            Spacer(Modifier.height(20.dp))
         }
 
         item {

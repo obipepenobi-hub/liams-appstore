@@ -41,6 +41,7 @@ fun HomeScreen(
     catalogState: CatalogUiState,
     appStates: Map<String, AppState>,
     selectedCategory: String?,
+    friendsCount: Int,
     onSelectCategory: (String?) -> Unit,
     onOpenApp: (AppEntry) -> Unit,
     onAction: (AppEntry) -> Unit,
@@ -57,6 +58,7 @@ fun HomeScreen(
                 manifest = catalogState.manifest,
                 appStates = appStates,
                 selectedCategory = selectedCategory,
+                friendsCount = friendsCount,
                 onSelectCategory = onSelectCategory,
                 onOpenApp = onOpenApp,
                 onAction = onAction
@@ -85,6 +87,7 @@ private fun HomeContent(
     manifest: StoreManifest,
     appStates: Map<String, AppState>,
     selectedCategory: String?,
+    friendsCount: Int,
     onSelectCategory: (String?) -> Unit,
     onOpenApp: (AppEntry) -> Unit,
     onAction: (AppEntry) -> Unit
@@ -102,7 +105,7 @@ private fun HomeContent(
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                     Text(manifest.storeName, style = MaterialTheme.typography.headlineLarge, color = WerkstattColors.TextDark)
-                    Text("${manifest.friends.size} Freunde", style = MaterialTheme.typography.bodyMedium, color = WerkstattColors.TextMuted)
+                    Text("$friendsCount Freunde", style = MaterialTheme.typography.bodyMedium, color = WerkstattColors.TextMuted)
                 }
             }
         }

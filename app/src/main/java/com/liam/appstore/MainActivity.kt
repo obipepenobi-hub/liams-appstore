@@ -98,8 +98,10 @@ private fun AppRoot(
     val autoLoad by app.config.autoLoadUpdates.collectAsState(initial = false)
     val showTestBuilds by app.config.showTestBuilds.collectAsState(initial = true)
     val selfUpdateEnabled by app.config.selfUpdateEnabled.collectAsState(initial = true)
+    val localFriends by app.config.localFriends.collectAsState(initial = emptySet())
 
     val manifest = (catalogState as? CatalogUiState.Loaded)?.manifest
+    val combinedFriends = (manifest?.friends.orEmpty() + localFriends).distinct()
 
     fun performAction(entry: AppEntry) {
         val state = appStates[entry.id] ?: AppState.NOT_INSTALLED
@@ -132,6 +134,7 @@ private fun AppRoot(
                         catalogState = catalogState,
                         appStates = appStates,
                         selectedCategory = selectedCategory,
+                        friendsCount = combinedFriends.size,
                         onSelectCategory = { selectedCategory = it },
                         onOpenApp = { route = Route.Detail(it.id) },
                         onAction = { performAction(it) },
@@ -164,7 +167,7 @@ private fun AppRoot(
                             owner = owner, repo = repo, branch = branch, token = token,
                             wifiOnly = wifiOnly, autoLoadUpdates = autoLoad,
                             showTestBuilds = showTestBuilds, selfUpdateEnabled = selfUpdateEnabled,
-                            friends = manifest?.friends.orEmpty()
+                            friends = combinedFriends
                         ),
                         onSaveSource = { o, rp, br ->
                             scope.launch { app.config.setContentSource(o, rp, br); viewModel.refresh() }
@@ -174,7 +177,16 @@ private fun AppRoot(
                         onToggleAutoLoad = { v -> scope.launch { app.config.setAutoLoadUpdates(v) } },
                         onToggleTestBuilds = { v -> scope.launch { app.config.setShowTestBuilds(v); viewModel.refresh() } },
                         onToggleSelfUpdate = { v -> scope.launch { app.config.setSelfUpdateEnabled(v) } },
-                        onCheckSelfUpdate = { viewModel.checkSelfUpdate() }
+                        onCheckSelfUpdate = { viewModel.checkSelfUpdate() },
+                        onAddFriend = { name -> scope.launch { app.config.addLocalFriend(name) } },
+                        onRemoveFriend = { name -> scope.launch { app.config.removeLocalFriend(name) } },
+                        onShareInvite = {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "Schau dir meinen privaten App-Store an: https://github.com/$owner/$repo")
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Einladungslink teilen"))
+                        }
                     )
                 }
                 is Route.Detail -> {
