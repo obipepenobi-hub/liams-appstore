@@ -1,6 +1,10 @@
 package com.liam.appstore
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,6 +61,16 @@ class MainActivity : ComponentActivity() {
         // um den Vorgang mit der frisch erteilten Erlaubnis fortzusetzen.
     }
 
+    // onResume allein war nicht zuverlässig genug (Timing zwischen "Installer schließt sich"
+    // und "unsere Activity resumed" variiert je nach Hersteller/Android-Version). PACKAGE_ADDED/
+    // _REPLACED/_REMOVED sind das eigentliche System-Signal dafür, dass sich der Installiert-
+    // Zustand geändert hat, und lösen den Refresh direkt und zuverlässig aus.
+    private val packageChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            viewModel.recomputeInstalledStates()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -64,6 +78,27 @@ class MainActivity : ComponentActivity() {
                 AppRoot(viewModel, onOpenUnknownSourcesSettings = { intent -> unknownSourcesLauncher.launch(intent) })
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addDataScheme("package")
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(packageChangeReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(packageChangeReceiver, filter)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(packageChangeReceiver)
     }
 
     override fun onResume() {

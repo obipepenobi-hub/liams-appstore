@@ -1,6 +1,7 @@
 package com.liam.appstore.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.liam.appstore.data.AppEntry
 import com.liam.appstore.data.AppState
 import com.liam.appstore.data.StoreManifest
@@ -174,6 +177,7 @@ private fun FeaturedCard(
         modifier = modifier
             .fillMaxWidth()
             .background(WerkstattColors.CardCream, RoundedCornerShape(28.dp))
+            .clickable(onClick = onOpenDetail)
             .padding(20.dp)
     ) {
         Badge(text = "NEUER BUILD · VON ${entry.author.uppercase()}")
@@ -182,20 +186,32 @@ private fun FeaturedCard(
         Spacer(Modifier.height(6.dp))
         Text(entry.teaser, style = MaterialTheme.typography.bodyLarge, color = WerkstattColors.TextMuted)
         Spacer(Modifier.height(14.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .background(WerkstattColors.PlaceholderLight, RoundedCornerShape(20.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(entry.name.take(1).uppercase(), style = MaterialTheme.typography.displayMedium, color = WerkstattColors.CardCream)
-            Text(
-                "PLATZHALTER",
-                style = MaterialTheme.typography.labelSmall,
-                color = WerkstattColors.PlaceholderDark,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
+        if (entry.featuredImageUrl.isNotBlank()) {
+            AsyncImage(
+                model = entry.featuredImageUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(WerkstattColors.PlaceholderLight, RoundedCornerShape(20.dp))
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .background(WerkstattColors.PlaceholderLight, RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(entry.name.take(1).uppercase(), style = MaterialTheme.typography.displayMedium, color = WerkstattColors.CardCream)
+                Text(
+                    "PLATZHALTER",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = WerkstattColors.PlaceholderDark,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp)
+                )
+            }
         }
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

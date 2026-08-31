@@ -47,6 +47,7 @@ data class AppEntry(
     val reviews: List<Review> = emptyList(),
     val iconUrl: String = "",
     val teaserVideoUrl: String = "",
+    val featuredImageUrl: String = "",
     val screenshots: List<String> = emptyList(),
     val apkUrl: String,
     val apkSha256: String = "",
