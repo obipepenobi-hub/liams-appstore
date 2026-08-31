@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Ohne diese Berechtigung sieht die App ab Android 11 (Package Visibility)
+         nicht, ob eine gelistete App bereits installiert ist - getPackageInfo()
+         wirft dann fuer JEDES fremde Paket "nicht gefunden", egal wie frisch
+         installiert es ist. Fuer einen App-Store, der beliebige, erst zur
+         Laufzeit aus apps.json bekannte Pakete pruefen muss, ist das der
+         vorgesehene Weg (genau wie Play Store/F-Droid es nutzen). Da diese
+         App nicht ueber Play Store vertrieben wird, gilt die dortige
+         Einschraenkung fuer dieses Recht hier nicht. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <queries>
         <intent>

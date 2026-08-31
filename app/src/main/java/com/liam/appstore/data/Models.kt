@@ -47,13 +47,23 @@ data class AppEntry(
     val reviews: List<Review> = emptyList(),
     val iconUrl: String = "",
     val teaserVideoUrl: String = "",
+    val teaserAspectRatio: String = "9:16",
     val featuredImageUrl: String = "",
     val screenshots: List<String> = emptyList(),
     val apkUrl: String,
     val apkSha256: String = "",
     val minSdk: Int = 26,
     val installs: Int = 0
-)
+) {
+    /** "9:16" -> 0.5625 (Breite/Höhe), fällt bei kaputtem Wert auf Hochformat zurück. */
+    val teaserAspectRatioValue: Float
+        get() {
+            val parts = teaserAspectRatio.split(":")
+            val w = parts.getOrNull(0)?.toFloatOrNull()
+            val h = parts.getOrNull(1)?.toFloatOrNull()
+            return if (w != null && h != null && h != 0f) w / h else 9f / 16f
+        }
+}
 
 @Serializable
 data class StoreManifest(

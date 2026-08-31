@@ -83,7 +83,10 @@ fun TeaserVideoPreview(url: String, modifier: Modifier = Modifier) {
                     layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                     this.player = player
                     useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    // FIT statt ZOOM: der Container übernimmt bereits das echte Seitenverhältnis
+                    // des Videos (AppEntry.teaserAspectRatioValue), FIT verhindert trotzdem
+                    // hartes Zuschneiden, falls die Metadaten mal nicht exakt passen.
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 }
             },
             modifier = Modifier.fillMaxSize()

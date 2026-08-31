@@ -73,15 +73,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            LiamsAppstoreTheme {
-                AppRoot(viewModel, onOpenUnknownSourcesSettings = { intent -> unknownSourcesLauncher.launch(intent) })
-            }
-        }
-    }
 
-    override fun onStart() {
-        super.onStart()
+        // In onCreate/onDestroy statt onStart/onStop registriert: onStop feuert
+        // genau dann, wenn der System-Installer in den Vordergrund kommt - exakt
+        // der Moment, in dem PACKAGE_ADDED tatsaechlich gesendet wird. Mit
+        // onStart/onStop verpasst der Receiver das Ereignis systematisch, weil
+        // er in genau diesem Moment abgemeldet ist.
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REPLACED)
@@ -94,16 +91,26 @@ class MainActivity : ComponentActivity() {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(packageChangeReceiver, filter)
         }
+
+        setContent {
+            LiamsAppstoreTheme {
+                AppRoot(viewModel, onOpenUnknownSourcesSettings = { intent -> unknownSourcesLauncher.launch(intent) })
+            }
+        }
     }
 
-    override fun onStop() {
-        super.onStop()
+    override fun onDestroy() {
         unregisterReceiver(packageChangeReceiver)
+        super.onDestroy()
     }
 
     override fun onResume() {
         super.onResume()
         viewModel.recomputeInstalledStates()
+        // Nicht nur beim Kaltstart (init{} im ViewModel) pruefen, sondern bei jedem
+        // Oeffnen der App - sonst sieht man ein frisch veroeffentlichtes Update erst,
+        // wenn der komplette Prozess neu startet, was selten von selbst passiert.
+        viewModel.checkSelfUpdate()
     }
 }
 

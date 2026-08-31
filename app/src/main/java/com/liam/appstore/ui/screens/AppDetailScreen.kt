@@ -68,7 +68,7 @@ fun AppDetailScreen(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
                             .fillMaxWidth()
-                            .aspectRatio(9f / 16f)
+                            .aspectRatio(entry.teaserAspectRatioValue)
                     )
                     Spacer(Modifier.height(20.dp))
                 }
