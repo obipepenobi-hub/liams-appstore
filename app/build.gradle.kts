@@ -12,8 +12,25 @@ android {
         applicationId = "com.liam.appstore"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "1.9"
+        versionCode = 11
+        versionName = "1.10"
+    }
+
+    signingConfigs {
+        // Fester Debug-Keystore statt des von AGP automatisch generierten -
+        // auf GitHub-Actions-Runnern gibt es keinen persistenten
+        // ~/.android/debug.keystore, jeder CI-Lauf bekommt sonst einen
+        // NEUEN zufälligen Signierschlüssel. Damit signiert jede Version
+        // anders, Android verweigert das Update-Install ueber die
+        // bestehende App mit "App nicht installiert" (Signaturkonflikt).
+        // Mit diesem eingecheckten Keystore signieren alle Builds - lokal
+        // wie in der CI - identisch.
+        getByName("debug") {
+            storeFile = file("liams-appstore-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
