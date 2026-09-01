@@ -82,7 +82,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             when (result) {
                 is SelfUpdateCheck.UpdateAvailable -> beginInstall(selfUpdateEntry(result.release))
                 SelfUpdateCheck.UpToDate -> if (announceResult) showToast("Liams Appstore ist aktuell")
-                is SelfUpdateCheck.Failed -> if (announceResult) showToast("Update-Check fehlgeschlagen: ${result.message}")
+                // Fehler werden IMMER angezeigt, auch beim stillen Auto-Check via onResume -
+                // sonst verschwindet ein Netzwerk-/Rate-Limit-/Release-Fehler spurlos, und
+                // es sieht so aus, als würde einfach nie eine Download-Bestätigung kommen.
+                is SelfUpdateCheck.Failed -> showToast("Update-Check fehlgeschlagen: ${result.message}")
             }
         }
     }
