@@ -44,9 +44,9 @@
       "name": "Cadence",
       "author": "dir",
       "category": "musik",
-      "version": "1.0.36",
-      "versionCode": 10036,
-      "sizeBytes": 63023972,
+      "version": "1.1.16",
+      "versionCode": 10116,
+      "sizeBytes": 63331772,
       "teaser": "Fernbedienung fürs Handy für den KI-DJ, der auf deinem PC läuft.",
       "description": "Cadence steuert den lokalen KI-DJ auf deinem PC vom Handy aus: automatisch im WLAN finden, QR-Code am PC scannen oder die IP-Adresse manuell eingeben. Danach läuft dieselbe Bedienung wie am PC — Play/Pause/Skip, Playlists, Stimmungsbefehle wie \"spiel was Entspanntes\".",
       "tags": ["Kein Konto", "Lokales WLAN", "Companion-App"],
@@ -62,8 +62,8 @@
       "teaserAspectRatio": "9:16",
       "featuredImageUrl": "https://github.com/obipepenobi-hub/liams-appstore/releases/download/cadence-v1.0.36/cadence-featured.png",
       "screenshots": ["https://github.com/obipepenobi-hub/liams-appstore/releases/download/cadence-v1.0.36/cadence-screenshot-1.png"],
-      "apkUrl": "https://github.com/obipepenobi-hub/liams-appstore/releases/download/cadence-v1.0.36/cadence-v1.0.36.apk",
-      "apkSha256": "32c0101961d27dab6c9ffe8c9fbc37a6d8828a7432eea95ffc80b029ac41bdff",
+      "apkUrl": "https://github.com/obipepenobi-hub/liams-appstore/releases/download/cadence-v1.1.16/cadence-v1.1.16.apk",
+      "apkSha256": "d59dd228e95c67b92af31e6675e2fcf1e5d08e14994abbd0afd3e22d227673a3",
       "minSdk": 24,
       "installs": 0
     }
