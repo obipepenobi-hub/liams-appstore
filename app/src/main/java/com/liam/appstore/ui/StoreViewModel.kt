@@ -40,6 +40,11 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     private val _appStates = MutableStateFlow<Map<String, AppState>>(emptyMap())
     val appStates: StateFlow<Map<String, AppState>> = _appStates.asStateFlow()
 
+    // Echte installierte Versionsnamen vom Geraet, nicht die (ggf. veraltete)
+    // apps.json-Angabe - siehe AppRepository.installedVersionName.
+    private val _installedVersions = MutableStateFlow<Map<String, String>>(emptyMap())
+    val installedVersions: StateFlow<Map<String, String>> = _installedVersions.asStateFlow()
+
     private val _installStep = MutableStateFlow<InstallStep>(InstallStep.Idle)
     val installStep: StateFlow<InstallStep> = _installStep.asStateFlow()
 
@@ -73,6 +78,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun recomputeStates(manifest: StoreManifest) {
         _appStates.value = manifest.apps.associate { it.id to app.repository.stateFor(it) }
+        _installedVersions.value = manifest.apps.mapNotNull { entry ->
+            app.repository.installedVersionName(entry)?.let { entry.id to it }
+        }.toMap()
     }
 
     fun checkSelfUpdate(announceResult: Boolean = false) {

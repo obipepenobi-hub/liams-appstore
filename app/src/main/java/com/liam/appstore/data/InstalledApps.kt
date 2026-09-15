@@ -23,6 +23,19 @@ class InstalledApps(private val context: Context) {
 
     fun isInstalled(packageName: String): Boolean = installedVersionCode(packageName) != null
 
+    // Fuer die Anzeige: liest den echten versionName vom Geraet statt den
+    // (moeglicherweise veralteten) Wert aus apps.json - falls eine App z.B.
+    // per Seitenladen direkt aktualisiert wurde, ohne dass der Appstore-
+    // Katalog manuell nachgezogen wurde, zeigt der Store trotzdem die
+    // tatsaechlich installierte Versionsnummer.
+    fun installedVersionName(packageName: String): String? {
+        return try {
+            context.packageManager.getPackageInfo(packageName, 0).versionName
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
+        }
+    }
+
     fun stateFor(entry: AppEntry): AppState {
         val installed = installedVersionCode(entry.packageName) ?: return AppState.NOT_INSTALLED
         return if (entry.versionCode > installed) AppState.UPDATE_AVAILABLE else AppState.UP_TO_DATE

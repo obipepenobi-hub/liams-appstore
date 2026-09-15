@@ -34,4 +34,7 @@ class AppRepository(
         val code = installedApps.installedVersionCode(entry.packageName) ?: return null
         return "v$code"
     }
+
+    /** Echte installierte Versionsanzeige (versionName), falls vorhanden - sonst null. */
+    fun installedVersionName(entry: AppEntry): String? = installedApps.installedVersionName(entry.packageName)
 }

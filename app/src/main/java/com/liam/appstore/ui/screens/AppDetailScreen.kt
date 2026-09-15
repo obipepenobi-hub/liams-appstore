@@ -42,6 +42,7 @@ import com.liam.appstore.ui.theme.WerkstattColors
 fun AppDetailScreen(
     entry: AppEntry,
     state: AppState,
+    installedVersion: String?,
     onBack: () -> Unit,
     onAction: () -> Unit,
     onUninstall: () -> Unit
@@ -106,8 +107,13 @@ fun AppDetailScreen(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
+                    val versionLabel = if (state == AppState.UP_TO_DATE) {
+                        installedVersion ?: entry.version
+                    } else {
+                        entry.version
+                    }
                     Text(
-                        "Signatur geprüft · ${entry.version} · APK aus deiner Werkstatt",
+                        "Signatur geprüft · $versionLabel · APK aus deiner Werkstatt",
                         style = MaterialTheme.typography.bodySmall,
                         color = WerkstattColors.TextMuted
                     )

@@ -33,6 +33,7 @@ import com.liam.appstore.ui.theme.WerkstattColors
 fun ShelfScreen(
     manifest: StoreManifest?,
     appStates: Map<String, AppState>,
+    installedVersions: Map<String, String>,
     onOpenApp: (AppEntry) -> Unit,
     onAction: (AppEntry) -> Unit,
     onUpdateAll: () -> Unit,
@@ -96,7 +97,11 @@ fun ShelfScreen(
                 AppIconAvatar(name = entry.name, iconUrl = entry.iconUrl)
                 Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
                     Text(entry.name, style = MaterialTheme.typography.titleMedium, color = WerkstattColors.TextDark)
-                    val subtitle = if (state == AppState.UPDATE_AVAILABLE) "Update auf ${entry.version} bereit" else "Aktuell · ${entry.version}"
+                    val subtitle = if (state == AppState.UPDATE_AVAILABLE) {
+                        "Update auf ${entry.version} bereit"
+                    } else {
+                        "Aktuell · ${installedVersions[entry.id] ?: entry.version}"
+                    }
                     Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = WerkstattColors.TextMuted)
                 }
                 val label = if (state == AppState.UPDATE_AVAILABLE) "Update" else "Öffnen"

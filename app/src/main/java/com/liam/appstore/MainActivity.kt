@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -129,6 +130,7 @@ private fun AppRoot(
 
     val catalogState by viewModel.catalog.collectAsState()
     val appStates by viewModel.appStates.collectAsState()
+    val installedVersions by viewModel.installedVersions.collectAsState()
     val installStep by viewModel.installStep.collectAsState()
     val toast by viewModel.toast.collectAsState()
 
@@ -144,6 +146,29 @@ private fun AppRoot(
 
     val manifest = (catalogState as? CatalogUiState.Loaded)?.manifest
     val combinedFriends = (manifest?.friends.orEmpty() + localFriends).distinct()
+
+    // Auf den Haupt-Tabs erst beim zweiten Zurück-Tastendruck innerhalb von
+    // 2s beenden (sonst versehentlich zu leicht rausgeflogen); auf der
+    // Detailseite fuehrt Zurueck stattdessen erstmal nur zur Werkstatt.
+    var backPressedOnce by remember { mutableStateOf(false) }
+    val activity = context as? android.app.Activity
+    BackHandler {
+        when (route) {
+            is Route.Detail -> route = Route.Tab(StoreTab.STORE)
+            is Route.Tab -> {
+                if (backPressedOnce) {
+                    activity?.finish()
+                } else {
+                    backPressedOnce = true
+                    viewModel.showToast("Nochmal zurück drücken zum Beenden")
+                    scope.launch {
+                        delay(2000)
+                        backPressedOnce = false
+                    }
+                }
+            }
+        }
+    }
 
     fun performAction(entry: AppEntry) {
         val state = appStates[entry.id] ?: AppState.NOT_INSTALLED
@@ -201,6 +226,7 @@ private fun AppRoot(
                     StoreTab.SHELF -> ShelfScreen(
                         manifest = manifest,
                         appStates = appStates,
+                        installedVersions = installedVersions,
                         onOpenApp = { route = Route.Detail(it.id) },
                         onAction = { performAction(it) },
                         onUpdateAll = {
@@ -242,6 +268,7 @@ private fun AppRoot(
                         AppDetailScreen(
                             entry = entry,
                             state = appStates[entry.id] ?: AppState.NOT_INSTALLED,
+                            installedVersion = installedVersions[entry.id],
                             onBack = { route = Route.Tab(StoreTab.STORE) },
                             onAction = { performAction(entry) },
                             onUninstall = { performUninstall(entry) }
