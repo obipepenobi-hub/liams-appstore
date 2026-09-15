@@ -59,15 +59,24 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         checkSelfUpdate()
     }
 
-    fun refresh() {
+    // silent=true wird bei jedem App-Oeffnen (onResume) verwendet, damit neue
+    // apps.json-Eintraege sofort sichtbar sind, OHNE dass Liams Appstore selbst
+    // ein Update braucht - dabei aber ohne den Lade-Screen aufblitzen zu lassen
+    // und ohne einen bereits geladenen Katalog wegen eines kurzen Netzwerk-
+    // Ausrutschers durch eine Fehleransicht zu ersetzen.
+    fun refresh(silent: Boolean = false) {
         viewModelScope.launch {
-            _catalog.value = CatalogUiState.Loading
+            if (!silent) _catalog.value = CatalogUiState.Loading
             when (val result = app.repository.loadCatalog()) {
                 is CatalogResult.Success -> {
                     _catalog.value = CatalogUiState.Loaded(result.manifest)
                     recomputeStates(result.manifest)
                 }
-                is CatalogResult.Error -> _catalog.value = CatalogUiState.Failed(result.message)
+                is CatalogResult.Error -> {
+                    if (!silent || catalog.value !is CatalogUiState.Loaded) {
+                        _catalog.value = CatalogUiState.Failed(result.message)
+                    }
+                }
             }
         }
     }

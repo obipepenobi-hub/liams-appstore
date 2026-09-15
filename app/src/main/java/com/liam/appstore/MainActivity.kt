@@ -107,10 +107,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Katalog (apps.json) bei jedem Oeffnen neu laden - sonst sieht man ein
+        // frisch in apps.json eingetragenes App-Update erst nach einem kompletten
+        // Prozess-Neustart (init{} im ViewModel laeuft nur einmal pro Prozess).
+        // Das ist bewusst unabhaengig vom Selfupdate der Store-App selbst: neue
+        // Katalog-Eintraege sollen sichtbar sein, ohne dass Liams Appstore dafuer
+        // eine eigene neue Version braucht.
+        viewModel.refresh(silent = true)
         viewModel.recomputeInstalledStates()
-        // Nicht nur beim Kaltstart (init{} im ViewModel) pruefen, sondern bei jedem
-        // Oeffnen der App - sonst sieht man ein frisch veroeffentlichtes Update erst,
-        // wenn der komplette Prozess neu startet, was selten von selbst passiert.
         viewModel.checkSelfUpdate()
     }
 }
