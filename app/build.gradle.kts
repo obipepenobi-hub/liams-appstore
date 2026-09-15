@@ -12,8 +12,8 @@ android {
         applicationId = "com.liam.appstore"
         minSdk = 26
         targetSdk = 34
-        versionCode = 13
-        versionName = "1.12"
+        versionCode = 14
+        versionName = "1.13"
     }
 
     signingConfigs {

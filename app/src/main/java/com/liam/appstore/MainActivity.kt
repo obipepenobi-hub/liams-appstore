@@ -26,7 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.liam.appstore.data.AppEntry
 import com.liam.appstore.data.AppState
 import com.liam.appstore.ui.CatalogUiState
@@ -105,18 +108,6 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Katalog (apps.json) bei jedem Oeffnen neu laden - sonst sieht man ein
-        // frisch in apps.json eingetragenes App-Update erst nach einem kompletten
-        // Prozess-Neustart (init{} im ViewModel laeuft nur einmal pro Prozess).
-        // Das ist bewusst unabhaengig vom Selfupdate der Store-App selbst: neue
-        // Katalog-Eintraege sollen sichtbar sein, ohne dass Liams Appstore dafuer
-        // eine eigene neue Version braucht.
-        viewModel.refresh(silent = true)
-        viewModel.recomputeInstalledStates()
-        viewModel.checkSelfUpdate()
-    }
 }
 
 @Composable
@@ -150,6 +141,23 @@ private fun AppRoot(
 
     val manifest = (catalogState as? CatalogUiState.Loaded)?.manifest
     val combinedFriends = (manifest?.friends.orEmpty() + localFriends).distinct()
+
+    // Solange die App im Vordergrund ist (RESUMED), sofort und danach jede
+    // Minute neu pruefen: Katalog (apps.json), Installiert-Status und
+    // Store-Selfupdate. repeatOnLifecycle pausiert automatisch, wenn die App
+    // in den Hintergrund geht, und startet beim naechsten Oeffnen sofort neu -
+    // ersetzt die vorherige einmalige onResume-Pruefung.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                viewModel.refresh(silent = true)
+                viewModel.recomputeInstalledStates()
+                viewModel.checkSelfUpdate()
+                delay(60_000)
+            }
+        }
+    }
 
     // Auf den Haupt-Tabs erst beim zweiten Zurück-Tastendruck innerhalb von
     // 2s beenden (sonst versehentlich zu leicht rausgeflogen); auf der
