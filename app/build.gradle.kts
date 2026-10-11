@@ -12,29 +12,25 @@ android {
         applicationId = "com.liam.appstore"
         minSdk = 26
         targetSdk = 34
-        versionCode = 14
-        versionName = "1.13"
+        versionCode = 15
+        versionName = "1.14"
+
+        // SHA-256 des Release-Zertifikats (kommagetrennt, falls bei einer Rotation zwei
+        // gleichzeitig gelten muessen). Updates des Stores werden nur mit dieser Signatur
+        // akzeptiert - siehe security/TrustedSigners.kt und ApkVerifier.
+        buildConfigField(
+            "String",
+            "SELF_SIGNER_SHA256",
+            "\"d53bf588b7bbbefd6154e8d932e09badbb881157426e241ef669052ab38299f7\""
+        )
     }
 
-    signingConfigs {
-        // Fester Debug-Keystore statt des von AGP automatisch generierten -
-        // auf GitHub-Actions-Runnern gibt es keinen persistenten
-        // ~/.android/debug.keystore, jeder CI-Lauf bekommt sonst einen
-        // NEUEN zufälligen Signierschlüssel. Damit signiert jede Version
-        // anders, Android verweigert das Update-Install ueber die
-        // bestehende App mit "App nicht installiert" (Signaturkonflikt).
-        // Mit diesem eingecheckten Keystore signieren alle Builds - lokal
-        // wie in der CI - identisch.
-        getByName("debug") {
-            storeFile = file("liams-appstore-debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-
+    // Bewusst KEIN signingConfig im Repo: Release-APKs werden lokal mit dem privaten
+    // Schluessel (ausserhalb des Repos) signiert, siehe tools/release.sh. Der frueher
+    // eingecheckte Debug-Keystore war oeffentlich und ist als kompromittiert zu betrachten.
     buildTypes {
         release {
+            isDebuggable = false
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

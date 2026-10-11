@@ -6,6 +6,7 @@ import com.liam.appstore.BuildConfig
 import com.liam.appstore.data.GithubClient
 import com.liam.appstore.data.LatestRelease
 import com.liam.appstore.data.StoreConfig
+import com.liam.appstore.security.TrustedUrls
 import kotlinx.coroutines.flow.first
 
 sealed class SelfUpdateCheck {
@@ -15,10 +16,10 @@ sealed class SelfUpdateCheck {
 }
 
 /**
- * Checks GitHub Releases of THIS app's own repo for a newer build than the
- * one currently installed, using the versionCode tucked into the release tag
- * (e.g. tag "v7" -> versionCode 7). See .github/workflows/release.yml, which
- * cuts these releases automatically whenever a `vX` tag is pushed.
+ * Sucht in den GitHub-Releases des eigenen Repos das neueste Store-Release ("v15" ->
+ * versionCode 15, Anhang liams-appstore-v15.apk). Releases anderer Apps im selben Repo
+ * werden bewusst ignoriert (siehe GithubClient.fetchLatestStoreRelease). Die heruntergeladene
+ * APK wird vor der Installation gegen die fest eingebaute Signatur geprueft (ApkVerifier).
  */
 class SelfUpdateManager(
     private val context: Context,
@@ -45,9 +46,10 @@ class SelfUpdateManager(
         return try {
             val url = config.releasesApiUrl()
             val token = config.githubToken.first()
-            val release = github.fetchLatestRelease(url, token)
-            if (release.apkDownloadUrl.isBlank()) {
-                return SelfUpdateCheck.Failed("Release ohne APK-Anhang gefunden")
+            val release = github.fetchLatestStoreRelease(url, token)
+                ?: return SelfUpdateCheck.Failed("Kein Store-Release gefunden")
+            if (!TrustedUrls.isOwnedUrl(release.apkDownloadUrl, config.contentOwner.first())) {
+                return SelfUpdateCheck.Failed("Release-Anhang stammt nicht vom erwarteten GitHub-Konto")
             }
             if (release.versionCode > currentVersionCode()) {
                 SelfUpdateCheck.UpdateAvailable(release)

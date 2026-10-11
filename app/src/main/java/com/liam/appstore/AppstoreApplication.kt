@@ -6,7 +6,11 @@ import com.liam.appstore.data.GithubClient
 import com.liam.appstore.data.InstalledApps
 import com.liam.appstore.data.StoreConfig
 import com.liam.appstore.install.ApkInstaller
+import com.liam.appstore.security.ApkVerifier
 import com.liam.appstore.update.SelfUpdateManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class AppstoreApplication : Application() {
 
@@ -29,7 +33,12 @@ class AppstoreApplication : Application() {
         githubClient = GithubClient()
         installedApps = InstalledApps(this)
         repository = AppRepository(config, githubClient, installedApps)
-        apkInstaller = ApkInstaller(this, githubClient.rawClient())
+        apkInstaller = ApkInstaller(this, githubClient.rawClient(), ApkVerifier(this))
         selfUpdateManager = SelfUpdateManager(this, config, githubClient)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            apkInstaller.cleanupStale()
+            runCatching { config.migrateLegacyToken() }
+        }
     }
 }

@@ -9,6 +9,8 @@ import com.liam.appstore.data.AppState
 import com.liam.appstore.data.CatalogResult
 import com.liam.appstore.data.DownloadProgress
 import com.liam.appstore.data.StoreManifest
+import com.liam.appstore.security.TrustedSigners
+import com.liam.appstore.security.VerifyPolicy
 import com.liam.appstore.update.SelfUpdateCheck
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -92,17 +94,32 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }.toMap()
     }
 
+    // Pro Prozess hoechstens ein Fehler-Toast des stillen Auto-Checks (sonst Toast-Flut im
+    // Minutentakt, z.B. bei Offline/Rate-Limit); der manuelle Check zeigt immer alles.
+    private var autoFailureShown = false
+
+    // Das Update-Popup erscheint pro Version nur einmal je Prozess - wer es wegtippt,
+    // soll nicht jede Minute erneut davon unterbrochen werden. Der manuelle Check
+    // ("Jetzt nach Store-Update suchen") zeigt es immer wieder an.
+    private var promptedVersionCode = 0L
+
     fun checkSelfUpdate(announceResult: Boolean = false) {
         viewModelScope.launch {
             val result = app.selfUpdateManager.check()
             _selfUpdate.value = result
             when (result) {
-                is SelfUpdateCheck.UpdateAvailable -> beginInstall(selfUpdateEntry(result.release))
+                is SelfUpdateCheck.UpdateAvailable -> {
+                    val idle = _installStep.value is InstallStep.Idle
+                    if (idle && (announceResult || result.release.versionCode != promptedVersionCode)) {
+                        promptedVersionCode = result.release.versionCode
+                        beginInstall(selfUpdateEntry(result.release))
+                    }
+                }
                 SelfUpdateCheck.UpToDate -> if (announceResult) showToast("Liams Appstore ist aktuell")
-                // Fehler werden IMMER angezeigt, auch beim stillen Auto-Check via onResume -
-                // sonst verschwindet ein Netzwerk-/Rate-Limit-/Release-Fehler spurlos, und
-                // es sieht so aus, als würde einfach nie eine Download-Bestätigung kommen.
-                is SelfUpdateCheck.Failed -> showToast("Update-Check fehlgeschlagen: ${result.message}")
+                is SelfUpdateCheck.Failed -> if (announceResult || !autoFailureShown) {
+                    autoFailureShown = true
+                    showToast("Update-Check fehlgeschlagen: ${result.message}")
+                }
             }
         }
     }
@@ -129,7 +146,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun confirmInstall(entry: AppEntry) {
         viewModelScope.launch {
-            app.apkInstaller.downloadFlow(entry.id, entry.apkUrl, entry.apkSha256).collect { progress ->
+            app.apkInstaller.downloadFlow(entry.id, entry.apkUrl, policyFor(entry)).collect { progress ->
                 if (progress.error != null) {
                     _installStep.value = InstallStep.Error(entry, progress.error)
                 } else if (progress.done) {
@@ -139,6 +156,19 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    // Store-Updates gelten nur mit der fest eingebauten Signatur; Katalog-Apps brauchen
+    // zusaetzlich eine Pruefsumme und ein im Code hinterlegtes Signaturzertifikat.
+    private fun policyFor(entry: AppEntry): VerifyPolicy {
+        val isSelf = entry.id == SELF_UPDATE_ID
+        return VerifyPolicy(
+            expectedPackage = entry.packageName,
+            expectedVersionCode = entry.versionCode,
+            allowedSigners = if (isSelf) TrustedSigners.forSelf() else TrustedSigners.forPackage(entry.packageName),
+            requireSha256 = !isSelf,
+            expectedSha256 = entry.apkSha256
+        )
     }
 
     fun launchInstall(entry: AppEntry): android.content.Intent {

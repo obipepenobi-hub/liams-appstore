@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.liam.appstore.security.SecureStorage
+import com.liam.appstore.security.TrustedUrls
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -31,10 +33,15 @@ class StoreConfig(private val context: Context) {
         val LOCAL_FRIENDS = stringSetPreferencesKey("local_friends")
     }
 
-    val contentOwner: Flow<String> = context.dataStore.data.map { it[Keys.CONTENT_OWNER] ?: DEFAULT_OWNER }
-    val contentRepo: Flow<String> = context.dataStore.data.map { it[Keys.CONTENT_REPO] ?: DEFAULT_REPO }
-    val contentBranch: Flow<String> = context.dataStore.data.map { it[Keys.CONTENT_BRANCH] ?: DEFAULT_BRANCH }
-    val githubToken: Flow<String> = context.dataStore.data.map { it[Keys.GITHUB_TOKEN] ?: "" }
+    // Nur harmlose Zeichen (keine "/", "?", ".." usw.) - sonst Rueckfall auf den Standard.
+    private fun safePart(value: String?, default: String): String =
+        value?.takeIf { TrustedUrls.isValidSourcePart(it) } ?: default
+
+    val contentOwner: Flow<String> = context.dataStore.data.map { safePart(it[Keys.CONTENT_OWNER], DEFAULT_OWNER) }
+    val contentRepo: Flow<String> = context.dataStore.data.map { safePart(it[Keys.CONTENT_REPO], DEFAULT_REPO) }
+    val contentBranch: Flow<String> = context.dataStore.data.map { safePart(it[Keys.CONTENT_BRANCH], DEFAULT_BRANCH) }
+    // Das Token liegt nur verschluesselt (Android Keystore, AES-GCM) im DataStore.
+    val githubToken: Flow<String> = context.dataStore.data.map { SecureStorage.decrypt(it[Keys.GITHUB_TOKEN] ?: "") }
     val wifiOnly: Flow<Boolean> = context.dataStore.data.map { it[Keys.WIFI_ONLY] ?: true }
     val autoLoadUpdates: Flow<Boolean> = context.dataStore.data.map { it[Keys.AUTO_LOAD_UPDATES] ?: false }
     val showTestBuilds: Flow<Boolean> = context.dataStore.data.map { it[Keys.SHOW_TEST_BUILDS] ?: true }
@@ -42,28 +49,38 @@ class StoreConfig(private val context: Context) {
     val localFriends: Flow<Set<String>> = context.dataStore.data.map { it[Keys.LOCAL_FRIENDS] ?: emptySet() }
 
     suspend fun manifestUrl(): String {
-        val owner = context.dataStore.data.first()[Keys.CONTENT_OWNER] ?: DEFAULT_OWNER
-        val repo = context.dataStore.data.first()[Keys.CONTENT_REPO] ?: DEFAULT_REPO
-        val branch = context.dataStore.data.first()[Keys.CONTENT_BRANCH] ?: DEFAULT_BRANCH
+        val owner = contentOwner.first()
+        val repo = contentRepo.first()
+        val branch = contentBranch.first()
         return "https://raw.githubusercontent.com/$owner/$repo/$branch/apps.json"
     }
 
     suspend fun releasesApiUrl(): String {
-        val owner = context.dataStore.data.first()[Keys.CONTENT_OWNER] ?: DEFAULT_OWNER
-        val repo = context.dataStore.data.first()[Keys.CONTENT_REPO] ?: DEFAULT_REPO
-        return "https://api.github.com/repos/$owner/$repo/releases/latest"
+        val owner = contentOwner.first()
+        val repo = contentRepo.first()
+        return "https://api.github.com/repos/$owner/$repo/releases?per_page=30"
     }
 
     suspend fun setContentSource(owner: String, repo: String, branch: String) {
         context.dataStore.edit {
-            it[Keys.CONTENT_OWNER] = owner.trim()
-            it[Keys.CONTENT_REPO] = repo.trim()
-            it[Keys.CONTENT_BRANCH] = branch.trim().ifBlank { DEFAULT_BRANCH }
+            it[Keys.CONTENT_OWNER] = safePart(owner.trim(), DEFAULT_OWNER)
+            it[Keys.CONTENT_REPO] = safePart(repo.trim(), DEFAULT_REPO)
+            it[Keys.CONTENT_BRANCH] = safePart(branch.trim(), DEFAULT_BRANCH)
         }
     }
 
     suspend fun setGithubToken(token: String) {
-        context.dataStore.edit { it[Keys.GITHUB_TOKEN] = token }
+        context.dataStore.edit { it[Keys.GITHUB_TOKEN] = SecureStorage.encrypt(token.trim()) }
+    }
+
+    /** Aeltere Versionen haben das Token im Klartext gespeichert - einmalig verschluesseln. */
+    suspend fun migrateLegacyToken() {
+        context.dataStore.edit {
+            val stored = it[Keys.GITHUB_TOKEN].orEmpty()
+            if (stored.isNotEmpty() && !SecureStorage.isEncrypted(stored)) {
+                it[Keys.GITHUB_TOKEN] = SecureStorage.encrypt(stored)
+            }
+        }
     }
 
     suspend fun setWifiOnly(value: Boolean) {

@@ -10,3 +10,11 @@
 local.properties
 /app/build
 /app/release
+
+# Nie Schluessel oder JVM-Absturzprotokolle einchecken
+*.keystore
+*.jks
+*.p12
+lineage.bin
+hs_err_pid*.log
+replay_pid*.log

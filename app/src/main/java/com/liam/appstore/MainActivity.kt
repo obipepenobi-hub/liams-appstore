@@ -101,6 +101,11 @@ class MainActivity : ComponentActivity() {
                 AppRoot(viewModel, onOpenUnknownSourcesSettings = { intent -> unknownSourcesLauncher.launch(intent) })
             }
         }
+
+        // Tapjacking-Schutz: Beruehrungen werden verworfen, solange ein anderes Fenster
+        // (z.B. Overlay einer Schad-App) unsere Oberflaeche verdeckt - schuetzt vor allem
+        // die Installieren/Update-Bestaetigung.
+        window.decorView.filterTouchesWhenObscured = true
     }
 
     override fun onDestroy() {
@@ -150,10 +155,13 @@ private fun AppRoot(
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            // Katalog jede Minute, Store-Selfupdate (GitHub-API, Rate-Limit!) alle 5 Minuten.
+            var tick = 0
             while (true) {
                 viewModel.refresh(silent = true)
                 viewModel.recomputeInstalledStates()
-                viewModel.checkSelfUpdate()
+                if (tick % 5 == 0) viewModel.checkSelfUpdate()
+                tick++
                 delay(60_000)
             }
         }

@@ -17,12 +17,11 @@ Es gibt zwei getrennte Update-Mechanismen:
    (`PackageManager`). Ist der Katalog-Wert höher, zeigt die App "Update"
    statt "Öffnen" — genau wie im Prototyp.
 2. **Liams Appstore selbst**: Die App fragt periodisch
-   `GET /repos/<owner>/<repo>/releases/latest` ab (siehe
-   `SelfUpdateManager.kt`). Der Workflow
-   [`​.github/workflows/release.yml`](.github/workflows/release.yml) baut bei
-   jedem Tag-Push (`v1`, `v2`, `v3`, …) automatisch eine neue APK und hängt
-   sie als Release-Asset an. Das ist die "Update-Struktur über GitHub" für
-   den Store selbst.
+   `GET /repos/<owner>/<repo>/releases` ab und nimmt das neueste `vN`-Release
+   (siehe `SelfUpdateManager.kt`). Veröffentlicht wird mit `tools/release.sh` (siehe unten): lokal bauen, mit dem
+   privaten Schlüssel signieren, als Release `vN` mit Anhang
+   `liams-appstore-vN.apk` hochladen. Das ist die "Update-Struktur über GitHub"
+   für den Store selbst.
 
 **Wichtig:** Die Zahl im Tag (`v7`) muss mit `versionCode` in
 `app/build.gradle.kts` übereinstimmen, sonst erkennt der Selbstupdate-Check
@@ -34,7 +33,10 @@ die neue Version nicht.
 liams-appstore/                  <- dieses Repo, öffentlich auf GitHub
 ├── app/                         <- Android-Studio-Projekt (dieser Ordner)
 ├── apps.json                    <- Katalog: welche Apps im Store erscheinen
-├── .github/workflows/release.yml<- baut+released den Store bei Tag-Push
+├── .github/workflows/ci.yml     <- reine Kompilier-Prüfung (kein Release, keine Schlüssel)
+├── tools/release.sh             <- baut, signiert (lokal!) und veröffentlicht den Store
+├── tools/apk-info.sh            <- Paket/Version/Signatur-Hash einer APK anzeigen
+├── incoming-apks/               <- Ablage für neue App-APKs (wird verarbeitet und geleert)
 └── releases/                    <- GitHub Releases (kein Ordner, sondern
                                      die "Releases"-Ansicht auf github.com)
 ```
@@ -78,7 +80,7 @@ verweist per `apkUrl` direkt auf den `browser_download_url` dieses Assets.
       "screenshots": ["Radar", "Abend"],    // aktuell Platzhalter-Labels; echte Bild-URLs
                                             // funktionieren genauso (siehe ScreenshotThumb)
       "apkUrl": "https://github.com/<owner>/liams-appstore/releases/download/<tag>/<datei>.apk",
-      "apkSha256": "",                     // optional: SHA-256 der APK, wird vor Install geprüft
+      "apkSha256": "<64 Hex-Zeichen>",      // PFLICHT: SHA-256 der APK, ohne sie lehnt der Store die Installation ab
       "minSdk": 26,
       "installs": 4
     }
@@ -90,85 +92,78 @@ verweist per `apkUrl` direkt auf den `browser_download_url` dieses Assets.
 Detailseite den jeweiligen Abschnitt einfach nicht an — kein Absturz, nur
 eine schlankere Shop-Seite.
 
-## Die zwei mitgelieferten Apps
+## Sicherheitsmodell
 
-`apps.json` enthält bereits zwei echte Apps, mit Daten direkt aus den
-jeweiligen APKs (`aapt dump badging`) bzw. dem Repo ausgelesen:
+Der Store kann Apps installieren — wer ihn kapert, kapert das Handy. Deshalb:
 
-- **Impulskauf-Stopper** (`com.liam.kaptalismusaufhalter`) — hat schon ein
-  eigenes Repo mit eigener Update-Struktur
-  ([obipepenobi-hub/impulskauf-stopper](https://github.com/obipepenobi-hub/impulskauf-stopper)).
-  `apkUrl` zeigt direkt auf dessen aktuelles Release (`v1.0.3`) — die Prüfsumme
-  ist bereits eingetragen, das funktioniert **sofort**, sobald `apps.json` in
-  einem Repo liegt, das die App abfragt.
-- **Cadence** (`com.liamkkm.cadence`) — die Android-Fernbedienung für den
-  lokalen KI-DJ aus dem `spotify-dj`-Projekt. Dafür existiert noch **kein**
-  GitHub-Release, `apkUrl` in `apps.json` zeigt also noch ins Leere
-  (`obipepenobi-hub/liams-appstore/releases/download/cadence-v1.0.36/...`).
-  Dieser Befehl macht den Eintrag scharf:
-  ```bash
-  gh release create cadence-v1.0.36 \
-    "C:\Users\liam\OneDrive\Desktop\Android apks claude\Cadence.apk" \
-    --repo obipepenobi-hub/liams-appstore \
-    --title "Cadence 1.0.36"
-  ```
-  Die Prüfsumme in `apps.json` (`apkSha256`) passt schon zu genau dieser
-  Datei — beim Hochladen nichts umbenennen oder erneut komprimieren, sonst
-  stimmt der Hash nicht mehr und die Installation wird abgelehnt.
+- **Privater Signaturschlüssel, nie im Repo.** Liegt in
+  `C:\Users\liam\liams-appstore-signing\` (Schlüssel + Passwort + Lineage).
+  **Extern sichern** (z. B. USB/Passwortmanager): geht er verloren, kann sich die
+  installierte App nie wieder aktualisieren (nur Deinstallieren + Neuinstallieren).
+  Der frühere Debug-Schlüssel (`liams-appstore-debug.keystore`, Passwort `android`) war
+  öffentlich und gilt als kompromittiert; per Android-Schlüsselrotation (Lineage, ab
+  Android 13) wurde er abgelöst. Er steckt noch in der Git-Historie — ohne Bedeutung,
+  solange v15+ installiert ist.
+- **Release-APK ist nicht debuggable**, `allowBackup=false`, Tapjacking-Schutz
+  (`filterTouchesWhenObscured`), GitHub-Token nur verschlüsselt (Android Keystore).
+- **Jede heruntergeladene APK wird geprüft**, bevor der System-Installer sie sieht:
+  SHA-256 aus dem Katalog (Pflicht), Paketname, Versionscode und Signatur-Pinning
+  (`security/TrustedSigners.kt`; Store-Updates: nur das eingebaute Release-Zertifikat).
+  Die Vertrauensanker liegen im Code, nicht in `apps.json` — ein manipulierter Katalog
+  kann also keine fremde App einschleusen.
+- **Katalog ist unvertrauenswürdige Eingabe:** ungültige `id`/`packageName` und alle
+  URLs außerhalb des eigenen GitHub-Kontos werden verworfen; Netzwerkverkehr nur per
+  HTTPS zu GitHub-Hosts (auch jeder Redirect-Hop), Größenlimits, sichere Dateinamen.
+- **Store-Selfupdate** beachtet nur Releases mit Tag `vN` (kein Prerelease/Entwurf)
+  und Anhang `liams-appstore-vN.apk`.
 
-## Eine neue App-Version veröffentlichen
+Empfohlen auf GitHub-Seite (nicht per Code lösbar): Zwei-Faktor/Passkey, Branch-Schutz
+für `main`, Tokens mit minimalen Rechten.
 
-```bash
-# im Ordner deines ANDEREN App-Projekts (z.B. Grillwetter), nach dem Build:
-gh release create grillwetter-v0.10 app-release.apk \
-  --repo obipepenobi-hub/liams-appstore \
-  --title "Grillwetter 0.10"
-```
+## Eine neue Version einer gelisteten App veröffentlichen
 
-Danach in `apps.json` (in diesem Repo) `version`, `versionCode` und `apkUrl`
-der App aktualisieren und pushen. Liams Appstore zeigt beim nächsten Start
-automatisch "Update" an.
+1. APK in `incoming-apks/` auf `main` ablegen (oder direkt per Claude).
+2. `bash tools/apk-info.sh pfad/zur.apk` — zeigt Paketname, Version, Größe, SHA-256 und
+   ob der Signer im Store hinterlegt ist. **Zeigt es „NICHT hinterlegt“, nicht
+   veröffentlichen.**
+3. Release im Repo anlegen — **als Prerelease** (`prerelease: true`), z. B. Tag
+   `cadence-v1.1.17`. Nur so bleibt `releases/latest` beim Store und App-Releases
+   werden nie als Store-Update missverstanden.
+4. In `apps.json` `version`, `versionCode`, `sizeBytes`, `apkUrl`, `apkSha256`
+   aktualisieren, pushen, Datei aus `incoming-apks/` löschen. Der Store zeigt das
+   Update innerhalb einer Minute an (Katalog wird im Vordergrund minütlich neu geladen).
+
+### Eine komplett neue App aufnehmen
+
+Wegen des Signatur-Pinnings braucht das eine neue Store-Version: Signer-Hash mit
+`tools/apk-info.sh` ermitteln, in `security/TrustedSigners.kt` eintragen, App in
+`apps.json` ergänzen, dann Store-Release (unten). Ohne Eintrag lehnt der Store die
+Installation ab („Signatur dieser App ist im Store nicht hinterlegt“).
 
 ## Liams Appstore selbst veröffentlichen (Self-Update)
 
 ```bash
-# versionCode in app/build.gradle.kts z.B. auf 2 erhöhen, committen, dann:
-git tag v2
-git push origin v2
+# 1. versionCode/versionName in app/build.gradle.kts erhöhen
+# 2. committen und nach main pushen
+# 3. lokal bauen, signieren, verifizieren und das Release anlegen:
+bash tools/release.sh
 ```
 
-Die Action baut die APK und legt das Release an. In der App unter
-**Mehr → Jetzt nach Store-Update suchen** wird das sofort gefunden.
+Das Skript verweigert den Dienst bei ungepushten Änderungen, prüft Signatur (Lineage,
+ab Android 13 neues Zertifikat), Paketname/Version und dass die APK nicht debuggable
+ist, und legt erst dann das Release `vN` an. Auf dem Handy erscheint das Popup beim
+nächsten Öffnen bzw. spätestens nach 5 Minuten im Vordergrund; sofort unter
+**Mehr → Jetzt nach Store-Update suchen**.
 
-## Erstes Einrichten
+## Warum „Installieren“ trotzdem ein Systemfenster zeigt
 
-Ist bereits erledigt: Repo [obipepenobi-hub/liams-appstore](https://github.com/obipepenobi-hub/liams-appstore)
-ist angelegt, `DEFAULT_OWNER` in `StoreConfig.kt` und alle Platzhalter in
-`apps.json`/`README.md` zeigen bereits auf diesen Namen, der Code liegt
-gepusht auf `main`.
+Android lässt keine App außerhalb des Play Store APKs *lautlos* installieren — das wäre
+ein Sicherheitsloch. Liams Appstore lädt die APK, prüft sie (siehe Sicherheitsmodell) und
+übergibt sie per `FileProvider` an den System-Installer. Die Play-Protect-Warnung
+(„könnte schädlich sein“) ist bei Apps außerhalb des Play Store normal.
 
-Übrig bleibt nur noch, das Projekt lokal zu öffnen:
+## Bauen
 
-```bash
-git clone https://github.com/obipepenobi-hub/liams-appstore.git
-```
-
-Danach in Android Studio öffnen (`File → Open` auf den geklonten Ordner),
-Gradle synchronisieren lassen, auf dem Handy installieren (USB-Debugging
-oder `./gradlew installDebug`).
-
-## Warum "Installieren" trotzdem ein Systemfenster zeigt
-
-Android lässt keine App außerhalb des Play Store APKs *lautlos* installieren
-— das wäre ein Sicherheitsloch. Liams Appstore lädt die APK, prüft optional
-die SHA-256-Summe und übergibt sie dann per `FileProvider` an den
-System-Installer. Die eigene Bestätigungs-Seite (Berechtigungen, Größe,
-Version) läuft *vor* diesem Systemdialog — inhaltlich deckungsgleich mit dem
-Prototyp, technisch ehrlich zu dem, was Android erlaubt.
-
-## Build-Hinweis
-
-Dieses Projekt wurde ohne Android-SDK-Zugriff in der Entwicklungsumgebung
-geschrieben — es konnte hier **nicht kompiliert** werden. Öffne es in
-Android Studio (Hedgehog oder neuer) für den ersten echten Build; dort
-zeigen sich eventuelle letzte Tippfehler sofort in der IDE.
+Android Studio (Hedgehog oder neuer) oder `./gradlew :app:assembleDebug` (JDK 17,
+Android SDK 34). Lokale Debug-Builds sind mit dem Standard-Debug-Schlüssel signiert und
+nur zum Entwickeln gedacht — verteilt wird ausschließlich über `tools/release.sh`.
